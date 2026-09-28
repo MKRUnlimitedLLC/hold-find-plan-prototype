@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Hold–Find–Plan prototype</title>
+<style>
+  :root { --ink:#12233a; --muted:#5b6b80; --card:#fff; --bg:#eef3f8; --accent:#1f5f8b; --ok:#2a7a4b; --warn:#8a3d12; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:Georgia, 'Times New Roman', serif; background:var(--bg); color:var(--ink); }
+  header { background:var(--ink); color:#fff; padding:16px 20px; }
+  header h1 { margin:0; font-size:1.25rem; font-weight:600; }
+  header p { margin:6px 0 0; font-size:.85rem; opacity:.85; }
+  main { max-width:780px; margin:0 auto; padding:20px; }
+  .card { background:var(--card); border-radius:14px; padding:18px; box-shadow:0 8px 24px rgba(18,35,58,.08); }
+  label { display:block; font-size:.85rem; margin:10px 0 4px; color:var(--muted); }
+  select, input { width:100%; padding:10px; border:1px solid #c9d4e0; border-radius:8px; font:inherit; }
+  .row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  button { font:inherit; border:0; border-radius:10px; padding:12px 16px; background:var(--accent); color:#fff; cursor:pointer; }
+  button.ghost { background:#d9e4ef; color:var(--ink); }
+  button.warn { background:var(--warn); }
+  .actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:16px; }
+  .hidden { display:none; }
+  .icons { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; min-height:110px; align-items:center; }
+  .die { width:88px; height:88px; border-radius:14px; background:#f7fbff; border:2px solid #c5d3e2; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .die .emoji { font-size:2rem; line-height:1; }
+  .die .name { font-size:.8rem; margin-top:6px; }
+  .cover { background:#111; color:#eee; min-height:280px; display:flex; flex-direction:column; align-items:center; justify-content:center; border-radius:14px; }
+  .cover .count { font-size:4rem; font-variant-numeric:tabular-nums; }
+  .scene { position:relative; height:320px; border-radius:14px; overflow:hidden; border:1px solid #c9d4e0; }
+  .scene.kitchen { background:linear-gradient(#f3e2c8,#e8c9a0); }
+  .scene.desk { background:linear-gradient(#d7e3ef,#b9c9d8); }
+  .scene.entry { background:linear-gradient(#e6ddd0,#cbbda8); }
+  .token { position:absolute; font-size:1.7rem; cursor:pointer; filter:drop-shadow(0 2px 2px rgba(0,0,0,.2)); user-select:none; }
+  .token.found { outline:3px solid var(--ok); border-radius:8px; background:rgba(255,255,255,.55); }
+  .foil { opacity:.92; }
+  table { width:100%; border-collapse:collapse; font-size:.85rem; }
+  th, td { border-bottom:1px solid #e2e8ef; text-align:left; padding:6px 4px; }
+  .note { font-size:.8rem; color:var(--muted); }
+  .wrapbox { background:#f4f8fb; padding:12px; border-radius:10px; margin:12px 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Hold–Find–Plan</h1>
+  <p>Prototype v0.1 · clinician activity materials · not a medical device · no patient data stored</p>
+</header>
+<main>
+  <section id="setup" class="card">
+    <p class="note">Cover the physical cubes with a folder before the delay. This page only shows scenes and the timer. Do not leave the roll visible.</p>
+    <div class="row">
+      <div>
+        <label>Mode</label>
+        <select id="mode">
+          <option value="A">Hybrid A — physical dice + digital scene</option>
+          <option value="B">Hybrid B — digital icons + physical scene</option>
+        </select>
+      </div>
+      <div>
+        <label>Scene pack</label>
+        <select id="pack">
+          <option value="kitchen">Home / kitchen</option>
+          <option value="desk">Work / desk</option>
+          <option value="entry">Entryway</option>
+        </select>
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>Items to hold (n)</label>
+        <select id="n"><option>2</option><option selected>3</option><option>4</option></select>
+      </div>
+      <div>
+        <label>Encode seconds</label>
+        <select id="encode"><option>3</option><option selected>5</option><option>8</option></select>
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>Delay seconds</label>
+        <select id="delay"><option>3</option><option selected>5</option><option>8</option><option>10</option></select>
+      </div>
+      <div>
+        <label>Wrap</label>
+        <select id="wrap">
+          <option value="Find only">Find only</option>
+          <option value="Reverse">Find in reverse</option>
+          <option value="Skip first">Find all except the first</option>
+          <option value="Sentence" selected>Make one sentence using two</option>
+          <option value="Two-step">Give a 2-step direction</option>
+          <option value="Which first">Which do you handle first, and why?</option>
+        </select>
+      </div>
+    </div>
+    <div class="actions">
+      <button id="start">Start trial</button>
+      <button class="ghost" id="toLog">Jump to log</button>
+    </div>
+  </section>
+
+  <section id="encode" class="card hidden">
+    <p id="encodeHelp"></p>
+    <div class="icons" id="iconRow"></div>
+    <p class="note" id="encodeCount"></p>
+  </section>
+
+  <section id="cover" class="card hidden">
+    <div class="cover">
+      <div>Hold. Do not peek.</div>
+      <div class="count" id="coverCount">5</div>
+      <p class="note" style="color:#bbb">Cover physical cubes now if you have not already.</p>
+    </div>
+  </section>
+
+  <section id="find" class="card hidden">
+    <p>Find the held items in the scene. Tap targets if using the digital scene.</p>
+    <div class="wrapbox" id="wrapPrompt"></div>
+    <div class="scene" id="scene"></div>
+    <p class="note" id="foundLine"></p>
+    <div class="actions">
+      <button id="markWrap">Wrap complete</button>
+      <button class="ghost" id="markWrapNo">Wrap not complete</button>
+    </div>
+  </section>
+
+  <section id="log" class="card hidden" style="margin-top:16px">
+    <h2 style="margin-top:0;font-size:1.05rem">Session log (stays on this device)</h2>
+    <table>
+      <thead><tr><th>#</th><th>n</th><th>delay</th><th>found</th><th>wrap</th><th>set</th></tr></thead>
+      <tbody id="logBody"></tbody>
+    </table>
+    <div class="actions">
+      <button class="ghost" id="copyLog">Copy log</button>
+      <button class="ghost" id="next">Next trial</button>
+    </div>
+    <p class="note">8 trials is a home block. Clinic changes one parameter only after a clean block.</p>
+  </section>
+</main>
+<script>
+const LEX = [
+  {id:'mug', name:'mug', emoji:'☕'},
+  {id:'key', name:'key', emoji:'🔑'},
+  {id:'phone', name:'phone', emoji:'📱'},
+  {id:'apple', name:'apple', emoji:'🍎'},
+  {id:'book', name:'book', emoji:'📖'},
+  {id:'shoe', name:'shoe', emoji:'👟'},
+  {id:'hat', name:'hat', emoji:'🎩'},
+  {id:'glasses', name:'glasses', emoji:'👓'},
+  {id:'pencil', name:'pencil', emoji:'✏️'},
+  {id:'bag', name:'bag', emoji:'👜'},
+  {id:'clock', name:'clock', emoji:'⏰'},
+  {id:'scissors', name:'scissors', emoji:'✂️'}
+];
+const FOILS = [
+  {name:'bread', emoji:'🍞'}, {name:'lamp', emoji:'💡'}, {name:'chair', emoji:'🪑'},
+  {name:'leaf', emoji:'🍃'}, {name:'coin', emoji:'🪙'}, {name:'cup', emoji:'🍵'}
+];
+let state = { trial:0, set:[], found:new Set(), wrapOk:false };
+let log = [];
+const $ = id => document.getElementById(id);
+function shuffle(a){ return a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(x=>x[1]); }
+function pickSet(n){ return shuffle(LEX).slice(0,n); }
+function show(id){ ['setup','encode','cover','find','log'].forEach(s => $(s).classList.toggle('hidden', s!==id && !(id==='find' && s==='log'))); if(id==='find') $('log').classList.remove('hidden'); }
+
+$('start').onclick = begin;
+$('toLog').onclick = () => { $('log').classList.remove('hidden'); $('log').scrollIntoView({behavior:'smooth'}); };
+$('next').onclick = () => { show('setup'); };
+$('copyLog').onclick = () => {
+  const text = log.map(r => r.join('\t')).join('\n');
+  navigator.clipboard.writeText('trial\tn\tdelay\tfound\twrap\tset\n' + text);
+  alert('Log copied.');
+};
+
+function begin(){
+  const n = +$('n').value;
+  state.set = pickSet(n);
+  state.found = new Set();
+  state.wrapOk = false;
+  const mode = $('mode').value;
+  if(mode === 'A'){
+    $('encodeHelp').textContent = 'Name the physical cubes that match these icons, then cover the cubes with a folder.';
+  } else {
+    $('encodeHelp').textContent = 'Name these icons. They will hide automatically. Then search your physical card.';
+  }
+  $('iconRow').innerHTML = state.set.map(x => `<div class="die"><div class="emoji">${x.emoji}</div><div class="name">${x.name}</div></div>`).join('');
+  show('encode');
+  let left = +$('encode').value;
+  $('encodeCount').textContent = left + ' seconds to encode';
+  const t = setInterval(() => {
+    left--;
+    $('encodeCount').textContent = left + ' seconds to encode';
+    if(left <= 0){ clearInterval(t); startCover(); }
+  }, 1000);
+}
+function startCover(){
+  show('cover');
+  let left = +$('delay').value;
+  $('coverCount').textContent = left;
+  const t = setInterval(() => {
+    left--;
+    $('coverCount').textContent = left;
+    if(left <= 0){ clearInterval(t); startFind(); }
+  }, 1000);
+}
+function startFind(){
+  $('wrapPrompt').textContent = 'Wrap: ' + $('wrap').value + ' · Held: ' + state.set.map(x=>x.name).join(', ');
+  const mode = $('mode').value;
+  const scene = $('scene');
+  scene.className = 'scene ' + $('pack').value;
+  scene.innerHTML = '';
+  if(mode === 'B'){
+    scene.innerHTML = '<p style="padding:20px">Search the physical card on the table. Mark found items below when done.</p>';
+    state.set.forEach(item => state.found.add(item.id));
+  } else {
+    const tokens = state.set.map(x => ({...x, target:true})).concat(shuffle(FOILS).slice(0,5).map(x => ({...x, id:x.name, target:false})));
+    shuffle(tokens).forEach((tok,i) => {
+      const el = document.createElement('button');
+      el.className = 'token' + (tok.target ? '' : ' foil');
+      el.textContent = tok.emoji;
+      el.title = tok.name;
+      el.style.left = (8 + (i*13)%80) + '%';
+      el.style.top = (12 + (i*17)%70) + '%';
+      el.onclick = () => {
+        if(!tok.target) return;
+        state.found.add(tok.id);
+        el.classList.add('found');
+        updateFound();
+      };
+      scene.appendChild(el);
+    });
+  }
+  updateFound();
+  show('find');
+}
+function updateFound(){
+  $('foundLine').textContent = 'Found ' + state.found.size + ' of ' + state.set.length;
+}
+function finish(wrapOk){
+  state.wrapOk = wrapOk;
+  state.trial += 1;
+  log.push([state.trial, $('n').value, $('delay').value, state.found.size + '/' + state.set.length, wrapOk ? 'Y' : 'N', state.set.map(x=>x.name).join(',')]);
+  $('logBody').innerHTML = log.map(r => '<tr>' + r.map(c=>'<td>'+c+'</td>').join('') + '</tr>').join('');
+  $('log').classList.remove('hidden');
+  show('setup');
+}
+$('markWrap').onclick = () => finish(true);
+$('markWrapNo').onclick = () => finish(false);
+</script>
+</body>
+</html>
