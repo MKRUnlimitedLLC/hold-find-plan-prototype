@@ -1,0 +1,10 @@
+{
+  "name": "Hold-Find-Plan",
+  "short_name": "Hold-Find",
+  "description": "Clinician-directed hold-then-act activity. Not a medical device.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#eef3f8",
+  "theme_color": "#12233a",
+  "icons": []
+}
